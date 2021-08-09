@@ -18,9 +18,9 @@ require(viridis)
 library(lubridate)
 
 
-#####################
-# Voorbewerken data #
-#####################
+########################
+# 1. Voorbewerken data #
+########################
 
 #####
 # STAP 1: Laden van alle datasets
@@ -73,9 +73,9 @@ summary(allVaccinations_subset)
 
 
 
-#####################
-# SENTIMENT ANALYSE #
-#####################
+########################
+# 2. SENTIMENT ANALYSE #
+########################
 
 
 #####
@@ -116,13 +116,12 @@ sentimentData_compressed <- subset(sentimentData, select = c("sentiment", "words
 
 scoredTweets <- cbind(allTweets_subset, sentimentData_compressed) # verbind sentimentscores aan de tweets
 scoredTweets <- subset(scoredTweets, wordsScored != 0) #verwijder de tweets die niet gescoord zijn
+summary(scoredTweets)
 
 
-
-
-######################
-# LOCALISEREN TWEETS #
-######################
+#########################
+# 3. LOCALISEREN TWEETS #
+#########################
 
 
 #####
@@ -171,21 +170,23 @@ indices$ADMIN
 str(indices)
 points$ADMIN  <- indices$ADMIN
 
+# koppel landnamen aan tweets en verwijder missende waarden
+usableTweets <- cbind(tweetScoredLocated, country = indices$ADMIN)
+usableTweets <- na.omit(usableTweets)
 
 
 
-############################
-# ANALYSE BRUIKBARE TWEETS #
-############################
+
+###############################
+# 4. ANALYSE BRUIKBARE TWEETS #
+###############################
 
 
 #####
 # STAP 1: maak een dataset met alle bruikbare info en schoon deze op
 #####
 
-# koppel landnamen aan tweets en verwijder missende waarden
-usableTweets <- cbind(tweetScoredLocated, country = indices$ADMIN)
-usableTweets <- na.omit(usableTweets)
+
 # verwijder kolommen die vanaf deze stap niet meer nodig zijn
 usableTweets <- subset(usableTweets, select = c(id, date, sentiment, country))
 # verwijder de tijd uit de datums
@@ -208,8 +209,8 @@ barplot(tweetsPerCountry$n,
 plot(tweetsPerCountry$n,
      type = "o",
      main = "Tweets per land",
-     xlab = "Aantal tweets",
-     ylab = "Landen")
+     ylab = "Aantal tweets",
+     xaxt = 'n')
 abline(h = mean(tweetsPerCountry$n), col = "red")
 
 countries_100_df <- subset(tweetsPerCountry, n >= 100)
@@ -245,9 +246,11 @@ for (row in 1:nrow(world_map)) {
 
 sentimentMap <- left_join(sentimentCountryMeans, world_map, by = "country")
 
-ggplot(sentimentMap, aes(long, lat, group = group))+
-  geom_polygon(aes(fill = sentiment ), color = "black")+
-  scale_fill_viridis_c(option = "C")
+worldplot <- ggplot(sentimentMap, aes(long, lat, group = group))+
+  geom_polygon(aes(fill = sentiment ), color = "gray47")+
+  scale_fill_viridis_c(option = "C")+
+  theme_void()
+worldplot +labs(title= "Sentiment about COVID-19 vaccinations per country")
 
 # kaart specifiek voor Europa met alle lidstaten van de unie
 eu_member_states <- c(
@@ -285,9 +288,9 @@ euplot +labs(title = "Sentiment about COVID-19 vaccinations per EU member states
 
 
 
-#############################
-# LINEAIRE REGRESSIEANALYSE #
-#############################
+################################
+# 5. LINEAIRE REGRESSIEANALYSE #
+################################
 
 
 #####
@@ -353,31 +356,47 @@ plot(daily_vaccinations ~ sentiment,
 
 
 # per land en per datum
-model_date_country <- lm(daily_vaccinations ~ sentiment + country, data = combinedDataSet_date_country)
+model_date_country <- lm(daily_vaccinations ~ sentiment, data = combinedDataSet_date_country)
 model_date_country
 summary(model_date_country)
 
 # per land
-model_country <- lm(daily_vaccinations ~ sentiment + counrty, data = combinedDataSet_country)
+model_country <- lm(daily_vaccinations ~ sentiment, data = combinedDataSet_country)
 model_country
 summary(model_country)
 
 
+
+##########################
+# 6. Optimalisatie Model #
+##########################
+
+
 #####
-# STAP 4: optimaliseren model
+# STAP 1: Introduceren van hogere orde termen
 #####
 
 
-# Introduceren van hogere orde termen
 combinedDataSet_date_country$x2 <- combinedDataSet_date_country$sentiment * combinedDataSet_date_country$sentiment
 model_date_country_x2 <- lm(formula = daily_vaccinations ~ sentiment + x2, data = combinedDataSet_date_country)
 summary(model_date_country_x2)
+
+correlation_country_date_x2 <- round(cor(combinedDataSet_date_country[,3:5]), 3)
+correlation_country_date_x2
 
 combinedDataSet_country$x2 <- combinedDataSet_country$sentiment * combinedDataSet_country$sentiment
 model_country_x2 <- lm(formula = daily_vaccinations ~ sentiment + x2, data = combinedDataSet_country)
 summary(model_country_x2)
 
-# gebruik van interactie
+correlation_country_x2 <- round(cor(combinedDataSet_country[,2:4]), 3)
+correlation_country_x2
+
+
+#####
+# STAP 2: Gebruik van interactie
+#####
+
+
 model_date_country_int <- lm(daily_vaccinations ~ sentiment + country + sentiment:country, data = combinedDataSet_date_country)
 model_date_country_int
 summary(model_date_country_int)
@@ -387,7 +406,11 @@ model_country_int
 summary(model_country_int)
 
 
-# Een nog kleinere subset
+#####
+# STAP 3: Nog kleinere subsets
+#####
+
+
 top4 <- c("India", "United States", "Canada", "United Kingdom")
 combinedDataSet_date_country_top4 <- combinedDataSet_date_country[combinedDataSet_date_country$country %in% top4, ]
 

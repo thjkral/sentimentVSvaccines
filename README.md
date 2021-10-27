@@ -15,6 +15,5 @@ Fully writen in R, this script executes the entire research. It has 6 different 
 
 
 ### The data:
-All the datasets are collected and made public by [Gabriel Preda](https://www.kaggle.com/gpreda) on Kaggle. The datasets I used, created at 22-06-2021, are found in this 
-repository. If you require newer data, the Twitter data can be found [here](https://www.kaggle.com/gpreda/all-covid19-vaccines-tweets) and the vaccination data is available 
+All the datasets are collected and made public by [Gabriel Preda](https://www.kaggle.com/gpreda) on Kaggle. The datasets I used were created at 22-06-2021. If you require this data, the Twitter data can be found [here](https://www.kaggle.com/gpreda/all-covid19-vaccines-tweets) and the vaccination data is available 
 at [this](https://www.kaggle.com/gpreda/covid-world-vaccination-progress) location.
